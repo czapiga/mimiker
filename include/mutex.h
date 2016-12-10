@@ -1,28 +1,30 @@
-#ifndef __MUTEX_H__
-#define __MUTEX_H__
+#ifndef _SYS_MUTEX_H_
+#define _SYS_MUTEX_H_
 
 #include <turnstile.h>
-#include <thread.h>
 
-typedef struct {
-  volatile uint32_t mtx_state; /* 0 if unowned or has address of the owner */
-  turnstile_t turnstile;       /* FIFO Queue for blocked threads */
+typedef struct thread thread_t;
+
+#define MT_DEF 0
+#define MT_RECURSE 1
+
+typedef struct mtx {
+  volatile thread_t *m_owner; /* stores address of the owner */
+  volatile unsigned m_count; /* Counter for recursive mutexes */
+  unsigned m_type;           /* Normal or recursive mutex */
+  turnstile_t m_turnstile;   /* FIFO Queue for blocked threads */
 } mtx_t;
 
 /* Initializes mutex. Note that EVERY mutex has to be initialized
  * before it is used. */
-void mtx_init(mtx_t *);
+void mtx_init(mtx_t *m, unsigned type);
 
 /* Locks the mutex, if the mutex is already owned by someone,
- * then this blocks on turnstile, otherwise it takes the mutex.
- * At this moment mutexes cannot be recursive. */
-void mtx_lock(mtx_t *);
+ * then this blocks on turnstile, otherwise it takes the mutex. */
+void mtx_lock(mtx_t *m);
 
-/* Unlocks the mutex. If some thread blocked for the mutex, then it
- * wakes up the thread in FIFO manner. */
-void mtx_unlock(mtx_t *);
+/* Unlocks the mutex. If some thread blocked for the mutex,
+ * then it wakes up the thread in FIFO manner. */
+void mtx_unlock(mtx_t *m);
 
-/* Returns true iff the mutex is locked and we are the owner. */
-bool mtx_islocked(mtx_t *);
-
-#endif /* __MUTEX_H__ */
+#endif /* !_SYS_MUTEX_H_ */
